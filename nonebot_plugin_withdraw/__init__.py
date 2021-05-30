@@ -69,7 +69,7 @@ async def _(bot: Bot, event: Event, state: T_State):
 
     try:
         idx = -num - 1
-        await bot.delete_msg(message_id=msg_ids[key].get(idx))
+        await bot.delete_msg(message_id=msg_ids[key][idx])
         msg_ids[key].pop(idx)
     except:
         await withdraw.finish('撤回失败，可能已超时')
