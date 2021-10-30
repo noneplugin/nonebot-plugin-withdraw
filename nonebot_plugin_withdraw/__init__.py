@@ -1,6 +1,7 @@
+import re
 from typing import Any, Dict
-from nonebot import get_driver, on_command
-from nonebot.adapters.cqhttp import Bot, Event, GroupMessageEvent, PrivateMessageEvent
+from nonebot import get_driver, on_command, on_notice
+from nonebot.adapters.cqhttp import Bot, Event, GroupMessageEvent, PrivateMessageEvent, GroupRecallNoticeEvent
 from nonebot.rule import to_me
 from nonebot.typing import T_State, T_CalledAPIHook
 
@@ -59,6 +60,15 @@ async def _(bot: Bot, event: Event, state: T_State):
         return
     key = get_key(msg_type, id)
 
+    match_reply = re.search(r"\[CQ:reply,id=(-?\d*)]", event.raw_message)
+    if match_reply:
+        msg_id = int(match_reply.group(1))
+        try:
+            await bot.delete_msg(message_id=msg_id)
+            return
+        except:
+            await withdraw.finish('撤回失败，可能已超时')
+
     num = event.get_plaintext().strip()
     if not num:
         num = 0
@@ -73,3 +83,21 @@ async def _(bot: Bot, event: Event, state: T_State):
         msg_ids[key].pop(idx)
     except:
         await withdraw.finish('撤回失败，可能已超时')
+
+
+async def _group_recall(bot: Bot, event: Event, state: T_State) -> bool:
+    if isinstance(event, GroupRecallNoticeEvent) and str(event.user_id) == str(bot.self_id):
+        return True
+    return False
+
+
+withdraw_notice = on_notice(_group_recall, priority=10)
+
+
+@withdraw_notice.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    msg_id = int(event.message_id)
+    id = event.group_id
+    key = get_key('group', id)
+    if key in msg_ids and msg_id in msg_ids[key]:
+        msg_ids[key].remove(msg_id)
