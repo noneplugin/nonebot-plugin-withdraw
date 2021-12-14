@@ -9,6 +9,17 @@ from .config import Config
 global_config = get_driver().config
 withdraw_config = Config(**global_config.dict())
 
+
+__help__plugin_name__ = 'withdraw'
+__des__ = '自助撤回机器人发出的消息'
+__cmd__ = '''
+1、@我 撤回 [num]，num 为机器人发的倒数第几条消息，从 0 开始，默认为 0
+2、回复需要撤回的消息，回复“撤回”
+'''.strip()
+__short_cmd__ = '@我 撤回、回复消息“撤回”'
+__usage__ = f'{__des__}\nUsage:\n{__cmd__}'
+
+
 msg_ids = {}
 max_size = withdraw_config.withdraw_max_size
 
