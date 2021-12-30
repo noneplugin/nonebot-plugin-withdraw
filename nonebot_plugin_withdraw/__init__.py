@@ -1,7 +1,6 @@
-import re
 from typing import Any, Dict
 from nonebot import get_driver, on_command, on_notice
-from nonebot.adapters.cqhttp import Bot, Event, GroupMessageEvent, PrivateMessageEvent, GroupRecallNoticeEvent
+from nonebot.adapters.cqhttp import Bot, Event, MessageEvent, GroupMessageEvent, GroupRecallNoticeEvent
 from nonebot.rule import to_me
 from nonebot.typing import T_State, T_CalledAPIHook
 
@@ -60,20 +59,17 @@ withdraw = on_command('withdraw', aliases={'撤回'}, rule=to_me(), priority=10)
 
 
 @withdraw.handle()
-async def _(bot: Bot, event: Event, state: T_State):
+async def _(bot: Bot, event: MessageEvent, state: T_State):
     if isinstance(event, GroupMessageEvent):
         msg_type = 'group'
         id = event.group_id
-    elif isinstance(event, PrivateMessageEvent):
+    else:
         msg_type = 'private'
         id = event.user_id
-    else:
-        return
     key = get_key(msg_type, id)
 
-    match_reply = re.search(r"\[CQ:reply,id=(-?\d*)]", event.raw_message)
-    if match_reply:
-        msg_id = int(match_reply.group(1))
+    if event.reply:
+        msg_id = event.reply.message_id
         try:
             await bot.delete_msg(message_id=msg_id)
             return
@@ -81,12 +77,10 @@ async def _(bot: Bot, event: Event, state: T_State):
             await withdraw.finish('撤回失败，可能已超时')
 
     num = event.get_plaintext().strip()
-    if not num:
-        num = 0
-    elif num.isdigit() and 0 <= int(num) < len(msg_ids[key]):
+    if num and num.isdigit() and 0 <= int(num) < len(msg_ids[key]):
         num = int(num)
     else:
-        return
+        num = 0
 
     try:
         idx = -num - 1
@@ -106,7 +100,7 @@ withdraw_notice = on_notice(_group_recall, priority=10)
 
 
 @withdraw_notice.handle()
-async def _(bot: Bot, event: Event, state: T_State):
+async def _(bot: Bot, event: GroupRecallNoticeEvent, state: T_State):
     msg_id = int(event.message_id)
     id = event.group_id
     key = get_key('group', id)
