@@ -1,8 +1,5 @@
-from pydantic import BaseSettings
+from pydantic import BaseModel, Extra
 
 
-class Config(BaseSettings):
+class Config(BaseModel, extra=Extra.ignore):
     withdraw_max_size: int = 50
-
-    class Config:
-        extra = 'ignore'
