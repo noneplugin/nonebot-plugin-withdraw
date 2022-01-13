@@ -1,14 +1,14 @@
 [tool.poetry]
 name = "nonebot_plugin_withdraw"
-version = "0.1.6"
+version = "0.1.7"
 description = "A simple withdraw plugin for Nonebot2"
 authors = ["meetwq <meetwq@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.7.3"
-nonebot2 = "^2.0.0-alpha.13"
-nonebot-adapter-cqhttp = "^2.0.0-alpha.13"
+nonebot2 = ">=2.0.0-alpha.13, <2.0.0-beta.1"
+nonebot-adapter-cqhttp = ">=2.0.0-alpha.13, <2.0.0-beta.1"
 
 [tool.poetry.dev-dependencies]
 nb-cli = "^0.4.2"
