@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 from nonebot import get_driver, on_command, on_notice
-from nonebot.adapters.onebot.v11 import Bot, Event, MessageEvent, GroupMessageEvent, GroupRecallNoticeEvent
+from nonebot.adapters.onebot.v11 import Bot, Event, Message, MessageEvent, GroupMessageEvent, GroupRecallNoticeEvent
+from nonebot.params import CommandArg
 from nonebot.rule import to_me
 from nonebot.typing import T_CalledAPIHook
 
@@ -60,7 +61,7 @@ withdraw = on_command('withdraw', aliases={'撤回'},
 
 
 @withdraw.handle()
-async def _(bot: Bot, event: MessageEvent):
+async def _(bot: Bot, event: MessageEvent, msg: Message = CommandArg()):
     if isinstance(event, GroupMessageEvent):
         msg_type = 'group'
         id = event.group_id
@@ -77,7 +78,7 @@ async def _(bot: Bot, event: MessageEvent):
         except:
             await withdraw.finish('撤回失败，可能已超时')
 
-    num = event.get_plaintext().strip()
+    num = msg.extract_plain_text().strip()
     if num and num.isdigit() and 0 <= int(num) < len(msg_ids[key]):
         num = int(num)
     else:
