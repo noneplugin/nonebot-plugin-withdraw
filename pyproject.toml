@@ -1,9 +1,12 @@
 [tool.poetry]
 name = "nonebot_plugin_withdraw"
-version = "0.2.0"
+version = "0.2.1"
 description = "A simple withdraw plugin for Nonebot2"
 authors = ["meetwq <meetwq@gmail.com>"]
 license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/MeetWq/nonebot-plugin-withdraw"
+repository = "https://github.com/MeetWq/nonebot-plugin-withdraw"
 
 [tool.poetry.dependencies]
 python = "^3.7.3"
