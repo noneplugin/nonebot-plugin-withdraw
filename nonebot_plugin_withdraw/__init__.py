@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Tuple, Optional
 from nonebot import get_driver, on_command, on_notice
-from nonebot.internal.adapter import Bot as BaseBot
+from nonebot.adapters import Bot as BaseBot
 from nonebot.adapters.onebot.v11 import (
     Bot,
     Message,
