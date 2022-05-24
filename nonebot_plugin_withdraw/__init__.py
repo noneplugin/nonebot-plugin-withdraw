@@ -48,7 +48,7 @@ async def save_msg_id(
         elif api == "send_private_msg":
             msg_type = "private"
             id = data["user_id"]
-        elif api == "send_group_msg":
+        elif api in ["send_group_msg", "send_group_forward_msg"]:
             msg_type = "group"
             id = data["group_id"]
         else:
