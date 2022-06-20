@@ -1,4 +1,6 @@
 from typing import Any, Dict, List, Tuple, Optional
+
+from nonebot.plugin import PluginMetadata
 from nonebot import get_driver, on_command, on_notice
 from nonebot.internal.adapter import Bot as BaseBot
 from nonebot.adapters.onebot.v11 import (
@@ -15,19 +17,18 @@ from .config import Config
 withdraw_config = Config.parse_obj(get_driver().config.dict())
 
 
-__help__plugin_name__ = "withdraw"
-__des__ = "自助撤回机器人发出的消息"
-__cmd__ = """
-1、@我 撤回 [num1][-num2]，num 为机器人发的倒数第几条消息，从 0 开始，默认为 0
-2、回复需要撤回的消息，回复“撤回”
-""".strip()
-__short_cmd__ = "@我 撤回、回复消息“撤回”"
-__example__ = """
-@小Q 撤回
-@小Q 撤回 1
-@小Q 撤回 0-3
-""".strip()
-__usage__ = f"{__des__}\nUsage:\n{__cmd__}\nExamples:\n{__example__}"
+__plugin_meta__ = PluginMetadata(
+    name="撤回",
+    description="自助撤回机器人发出的消息",
+    usage="1、@我 撤回 [num1][-num2]，num 为机器人发的倒数第几条消息，从 0 开始，默认为 0\n2、回复需要撤回的消息，回复“撤回”",
+    config=Config,
+    extra={
+        "unique_name": "withdraw",
+        "example": "@小Q 撤回\n@小Q 撤回 1\n@小Q 撤回 0-3",
+        "author": "meetwq <meetwq@gmail.com>",
+        "version": "0.2.3",
+    },
+)
 
 
 msg_ids: Dict[str, List[int]] = {}
@@ -42,10 +43,10 @@ async def save_msg_id(
     bot: BaseBot, e: Optional[Exception], api: str, data: Dict[str, Any], result: Any
 ):
     try:
-        if api == "send_msg":
+        if api in ["send_msg", "send_forward_msg"]:
             msg_type = data["message_type"]
             id = data["group_id"] if msg_type == "group" else data["user_id"]
-        elif api == "send_private_msg":
+        elif api in ["send_private_msg", "send_private_forward_msg"]:
             msg_type = "private"
             id = data["user_id"]
         elif api in ["send_group_msg", "send_group_forward_msg"]:
