@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot_plugin_withdraw"
-version = "0.2.3"
+version = "0.3.0"
 description = "A simple withdraw plugin for Nonebot2"
 authors = ["meetwq <meetwq@gmail.com>"]
 license = "MIT"
@@ -9,12 +9,11 @@ homepage = "https://github.com/noneplugin/nonebot-plugin-withdraw"
 repository = "https://github.com/noneplugin/nonebot-plugin-withdraw"
 
 [tool.poetry.dependencies]
-python = "^3.7.3"
-nonebot2 = "^2.0.0-beta.4"
-nonebot-adapter-onebot = "^2.0.0-beta.1"
+python = "^3.8"
+nonebot2 = { version = "^2.0.0-rc.1", extras = ["fastapi"] }
+nonebot-adapter-onebot = "^2.2.0"
 
-[tool.poetry.dev-dependencies]
-nb-cli = "^0.6.0"
+[tool.poetry.group.dev.dependencies]
 black = "^22.1.0"
 
 [build-system]
