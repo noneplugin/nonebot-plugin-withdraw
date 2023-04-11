@@ -147,6 +147,8 @@ async def _(
         else:
             id = event.user_id
 
+    if msg_type == "friend":
+        msg_type = "private"
     key = get_key(bot, msg_type, id, sub_id)
 
     async def delete_message(msg_id: str):
