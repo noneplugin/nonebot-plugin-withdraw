@@ -135,7 +135,7 @@ async def _(
 ):
     sub_id = ""
     if isinstance(event, V11MEvent):
-        msg_type = event.sub_type
+        msg_type = event.message_type
         id = str(event.group_id if isinstance(event, V11GMEvent) else event.user_id)
     else:
         msg_type = event.detail_type
@@ -215,7 +215,6 @@ def _(bot: V11Bot, event: GroupRecallNoticeEvent):
 @withdraw_notice.handle()
 def _(bot: V12Bot, event: Union[GroupMessageDeleteEvent, ChannelMessageDeleteEvent]):
     msg_id = event.message_id
-    print(msg_id)
     if isinstance(event, GroupMessageDeleteEvent):
         msg_type = "group"
         id = event.group_id
