@@ -23,7 +23,7 @@ def register_withdraw_function(bot: type[Bot]):
     return wrapper
 
 
-ReceiptExtractor = Callable[[E], Optional[R]]
+ReceiptExtractor = Callable[[B, E], Awaitable[Optional[R]]]
 
 _receipt_extractors: dict[type[Event], ReceiptExtractor] = {}
 
@@ -35,24 +35,16 @@ def register_receipt_extractor(event: type[Event]):
     return wrapper
 
 
-withdraw_notice = on_notice()
-
-
-class AdapterNotSupported(Exception):
-    pass
-
-
-def extract_receipt(event: Event) -> Optional[Receipt]:
-    for event_type in event.__class__.mro():
-        if event_type in _receipt_extractors:
-            if not issubclass(event_type, Event):
-                break
-            return _receipt_extractors[event_type](event)
-
-
 async def withdraw_message(bot: Bot, receipt: Receipt):
     for bot_type, func in _withdraw_functions.items():
         if isinstance(bot, bot_type):
-            await func(bot, receipt)
-            return
-    raise AdapterNotSupported
+            return await func(bot, receipt)
+
+
+async def extract_receipt(bot: Bot, event: Event) -> Optional[Receipt]:
+    for event_type, extractor in _receipt_extractors.items():
+        if isinstance(event, event_type):
+            return await extractor(bot, event)
+
+
+withdraw_notice = on_notice()

@@ -26,12 +26,12 @@
 ### 支持的 adapter
 
 - [x] OneBot v11
-- [ ] OneBot v12
-- [ ] Kaiheila
-- [ ] Telegram
-- [ ] Feishu
-- [ ] RedProtocol
-- [ ] Discord
-- [ ] QQ
-- [ ] Satori
-- [ ] DoDo
+- [x] OneBot v12
+- [x] Kaiheila
+- [x] Telegram
+- [x] Feishu
+- [x] RedProtocol
+- [x] Discord
+- [x] QQ
+- [x] Satori
+- [x] DoDo

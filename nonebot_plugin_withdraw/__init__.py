@@ -16,8 +16,8 @@ from nonebot_plugin_session import SessionIdType, extract_session
 
 from . import adapters as adapters
 from .config import Config
-from .handler import AdapterNotSupported, extract_receipt, withdraw_message
-from .receipt import pop_receipt
+from .handler import extract_receipt, withdraw_message
+from .receipt import pop_receipt, remove_receipt
 
 __plugin_meta__ = PluginMetadata(
     name="撤回",
@@ -31,15 +31,15 @@ __plugin_meta__ = PluginMetadata(
     config=Config,
     supported_adapters={
         "~onebot.v11",
-        # "~onebot.v12",
-        # "~kaiheila",
-        # "~telegram",
-        # "~feishu",
-        # "~red",
-        # "~discord",
-        # "~qq",
-        # "~dodo",
-        # "~satori",
+        "~onebot.v12",
+        "~kaiheila",
+        "~telegram",
+        "~feishu",
+        "~red",
+        "~discord",
+        "~qq",
+        "~dodo",
+        "~satori",
     },
 )
 
@@ -54,17 +54,18 @@ withdraw = on_alconna(
 
 @withdraw.handle()
 async def _(matcher: Matcher, bot: Bot, event: Event, num: int):
-    receipt = extract_receipt(event)
+    user_id = extract_session(bot, event).get_id(SessionIdType.GROUP)
+
+    receipt = await extract_receipt(bot, event)
     if not receipt:
-        user_id = extract_session(bot, event).get_id(SessionIdType.GROUP)
         receipt = pop_receipt(user_id, num)
     if not receipt:
         await matcher.finish("找不到要撤回的消息")
 
     try:
         await withdraw_message(bot, receipt)
-    except AdapterNotSupported:
-        logger.warning(f"不支持的适配器：{bot.adapter.get_name()}")
     except AdapterException:
         logger.warning(traceback.format_exc())
         await matcher.finish("撤回失败")
+    finally:
+        remove_receipt(user_id, receipt)
