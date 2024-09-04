@@ -11,7 +11,7 @@ from nonebot.rule import to_me
 require("nonebot_plugin_alconna")
 require("nonebot_plugin_session")
 
-from nonebot_plugin_alconna import on_alconna
+from nonebot_plugin_alconna import Alconna, Args, on_alconna
 from nonebot_plugin_session import SessionIdType, extract_session
 
 from . import adapters as adapters
@@ -22,7 +22,10 @@ from .receipt import pop_receipt
 __plugin_meta__ = PluginMetadata(
     name="撤回",
     description="自助撤回机器人发出的消息",
-    usage="1、@我 撤回\n2、回复需要撤回的消息，回复“撤回”",
+    usage=(
+        "1、@我 撤回 [num]，num 指机器人发的倒数第几条消息，从 0 开始，默认为 0\n"
+        "2、回复需要撤回的消息，回复“撤回”"
+    ),
     type="application",
     homepage="https://github.com/noneplugin/nonebot-plugin-withdraw",
     config=Config,
@@ -41,15 +44,20 @@ __plugin_meta__ = PluginMetadata(
 )
 
 
-withdraw = on_alconna("撤回", block=True, rule=to_me(), use_cmd_start=True)
+withdraw = on_alconna(
+    Alconna("撤回", Args["num", int, 0]),
+    block=True,
+    rule=to_me(),
+    use_cmd_start=True,
+)
 
 
 @withdraw.handle()
-async def _(matcher: Matcher, bot: Bot, event: Event):
+async def _(matcher: Matcher, bot: Bot, event: Event, num: int):
     receipt = extract_receipt(event)
     if not receipt:
         user_id = extract_session(bot, event).get_id(SessionIdType.GROUP)
-        receipt = pop_receipt(user_id)
+        receipt = pop_receipt(user_id, num)
     if not receipt:
         await matcher.finish("找不到要撤回的消息")
 

@@ -33,7 +33,11 @@ def remove_receipt(user_id: str, receipt: Receipt):
         _receipt_records[user_id].remove(receipt)
 
 
-def pop_receipt(user_id: str) -> Optional[Receipt]:
-    if user_id in _receipt_records and _receipt_records[user_id]:
-        return _receipt_records[user_id].pop()
+def pop_receipt(user_id: str, index: int = 0) -> Optional[Receipt]:
+    if (
+        user_id in _receipt_records
+        and _receipt_records[user_id]
+        and 0 <= index < (total := len(_receipt_records[user_id]))
+    ):
+        return _receipt_records[user_id].pop(total - 1 - index)
     return None

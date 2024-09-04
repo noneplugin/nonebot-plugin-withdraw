@@ -18,6 +18,9 @@ with suppress(ImportError):
     class OnebotV11Receipt(Receipt):
         message_id: int
 
+        def get_id(self) -> str:
+            return str(self.message_id)
+
     @Bot.on_called_api
     async def _(
         bot: BaseBot,
