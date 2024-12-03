@@ -2,8 +2,14 @@ from contextlib import suppress
 from typing import Any, Optional
 
 from nonebot.adapters import Bot as BaseBot
-from nonebot_plugin_session import EventSession, Session, SessionIdType, SessionLevel
-from nonebot_plugin_session.const import SupportedPlatform
+from nonebot_plugin_uninfo import (
+    Scene,
+    SceneType,
+    Session,
+    SupportAdapter,
+    SupportScope,
+    User,
+)
 
 from ..handler import (
     register_receipt_extractor,
@@ -11,6 +17,7 @@ from ..handler import (
     withdraw_notice,
 )
 from ..receipt import Receipt, add_receipt, remove_receipt
+from ..utils import UserId, get_user_id
 
 with suppress(ImportError):
     from nonebot.adapters.qq import Bot, MessageDeleteEvent, QQMessageEvent
@@ -39,66 +46,53 @@ with suppress(ImportError):
             return
         if e or not result:
             return
+        if api not in (
+            "post_messages",
+            "post_dms_messages",
+            "post_c2c_messages",
+            "post_group_messages",
+        ):
+            return
 
-        id1 = None
-        id2 = None
-        id3 = None
-        level = SessionLevel.LEVEL0
-        platform = SupportedPlatform.qqguild
+        parent = None
 
         if api == "post_messages":
-            if not isinstance(result, GuildMessage):
-                return
-            level = SessionLevel.LEVEL3
-            id3 = result.guild_id
-            id2 = result.channel_id
-            channel_id = result.channel_id
+            assert isinstance(result, GuildMessage)
+            scene_type = SceneType.CHANNEL_TEXT
+            scene_id = result.channel_id
+            parent = Scene(id=result.guild_id, type=SceneType.GUILD)
 
         elif api == "post_dms_messages":
-            if not isinstance(result, GuildMessage):
-                return
-            level = SessionLevel.LEVEL1
-            id3 = data["guild_id"]
-            channel_id = result.channel_id
+            assert isinstance(result, GuildMessage)
+            scene_type = SceneType.PRIVATE
+            scene_id = result.channel_id
+            parent = Scene(id=result.guild_id, type=SceneType.GUILD)
 
         elif api == "post_c2c_messages":
-            if not isinstance(result, PostC2CMessagesReturn):
-                return
-            level = SessionLevel.LEVEL1
-            id1 = data["openid"]
-            platform = SupportedPlatform.qq
-            channel_id = id1
+            assert isinstance(result, PostC2CMessagesReturn)
+            scene_type = SceneType.PRIVATE
+            scene_id = data["openid"]
 
         elif api == "post_group_messages":
-            if not isinstance(result, PostGroupMessagesReturn):
-                return
-            level = SessionLevel.LEVEL2
-            id2 = data["group_openid"]
-            platform = SupportedPlatform.qq
-            channel_id = id2
-
-        else:
-            return
-
-        if not result.id:
-            return
+            assert isinstance(result, PostGroupMessagesReturn)
+            scene_type = SceneType.GROUP
+            scene_id = data["group_openid"]
 
         session = Session(
-            bot_id=bot.self_id,
-            bot_type=bot.type,
-            platform=platform,
-            level=level,
-            id1=id1,
-            id2=id2,
-            id3=id3,
+            self_id=bot.self_id,
+            adapter=SupportAdapter.qq,
+            scope=SupportScope.qq_api,
+            scene=Scene(id=scene_id, type=scene_type, parent=parent),
+            user=User(id=bot.self_id),
         )
-        user_id = session.get_id(SessionIdType.GROUP)
-        receipt = QQReceipt(channel_id=channel_id, message_id=result.id)
+
+        assert result.id
+        user_id = get_user_id(session)
+        receipt = QQReceipt(channel_id=scene_id, message_id=result.id)
         add_receipt(user_id, receipt)
 
     @withdraw_notice.handle()
-    def _(event: MessageDeleteEvent, session: EventSession):
-        user_id = session.get_id(SessionIdType.GROUP)
+    def _(event: MessageDeleteEvent, user_id: UserId):
         receipt = QQReceipt(
             channel_id=event.message.channel_id, message_id=event.message.id
         )

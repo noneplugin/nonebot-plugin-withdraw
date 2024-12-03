@@ -3,11 +3,18 @@ from typing import Any, Optional, Union
 
 from nonebot.adapters import Bot as BaseBot
 from nonebot.compat import type_validate_python
-from nonebot_plugin_session import Session, SessionIdType, SessionLevel
-from nonebot_plugin_session.const import SupportedPlatform
+from nonebot_plugin_uninfo import (
+    Scene,
+    SceneType,
+    Session,
+    SupportAdapter,
+    SupportScope,
+    User,
+)
 
 from ..handler import register_receipt_extractor, register_withdraw_function
 from ..receipt import Receipt, add_receipt
+from ..utils import get_user_id
 
 with suppress(ImportError):
     from nonebot.adapters.telegram import Bot
@@ -61,30 +68,26 @@ with suppress(ImportError):
 
         message_thread_id = msg.message_thread_id
         chat_id = msg.chat.id
-        id1 = None
-        id2 = None
-        id3 = None
+        parent = None
         if message_thread_id:
-            id3 = str(chat_id)
-            id2 = str(message_thread_id)
-            level = SessionLevel.LEVEL3
+            scene_type = SceneType.CHANNEL_TEXT
+            scene_id = str(message_thread_id)
+            parent = Scene(id=str(chat_id), type=SceneType.GUILD)
         elif msg.chat.type == "private":
-            id1 = str(chat_id)
-            level = SessionLevel.LEVEL1
+            scene_type = SceneType.PRIVATE
+            scene_id = str(chat_id)
         else:
-            id2 = str(chat_id)
-            level = SessionLevel.LEVEL2
+            scene_type = SceneType.GROUP
+            scene_id = str(chat_id)
 
         session = Session(
-            bot_id=bot.self_id,
-            bot_type=bot.type,
-            platform=SupportedPlatform.telegram,
-            level=level,
-            id1=id1,
-            id2=id2,
-            id3=id3,
+            self_id=bot.self_id,
+            adapter=SupportAdapter.telegram,
+            scope=SupportScope.telegram,
+            scene=Scene(id=scene_id, type=scene_type, parent=parent),
+            user=User(id=bot.self_id),
         )
-        user_id = session.get_id(SessionIdType.GROUP)
+        user_id = get_user_id(session)
         receipt = TelegramReceipt(chat_id=msg.chat.id, message_id=msg.message_id)
         add_receipt(user_id, receipt)
 

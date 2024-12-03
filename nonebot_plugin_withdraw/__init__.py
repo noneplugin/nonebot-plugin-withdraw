@@ -9,15 +9,15 @@ from nonebot.plugin import PluginMetadata
 from nonebot.rule import to_me
 
 require("nonebot_plugin_alconna")
-require("nonebot_plugin_session")
+require("nonebot_plugin_uninfo")
 
 from nonebot_plugin_alconna import Alconna, Args, on_alconna
-from nonebot_plugin_session import SessionIdType, extract_session
 
 from . import adapters as adapters
 from .config import Config
 from .handler import extract_receipt, withdraw_message
 from .receipt import pop_receipt, remove_receipt
+from .utils import UserId
 
 __plugin_meta__ = PluginMetadata(
     name="撤回",
@@ -35,7 +35,6 @@ __plugin_meta__ = PluginMetadata(
         "~kaiheila",
         "~telegram",
         "~feishu",
-        "~red",
         "~discord",
         "~qq",
         "~dodo",
@@ -53,9 +52,7 @@ withdraw = on_alconna(
 
 
 @withdraw.handle()
-async def _(matcher: Matcher, bot: Bot, event: Event, num: int):
-    user_id = extract_session(bot, event).get_id(SessionIdType.GROUP)
-
+async def _(matcher: Matcher, bot: Bot, event: Event, user_id: UserId, num: int):
     receipt = await extract_receipt(bot, event)
     if not receipt:
         receipt = pop_receipt(user_id, num)

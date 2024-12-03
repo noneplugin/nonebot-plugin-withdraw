@@ -3,11 +3,18 @@ from contextlib import suppress
 from typing import Any, Optional
 
 from nonebot.adapters import Bot as BaseBot
-from nonebot_plugin_session import Session, SessionIdType, SessionLevel
-from nonebot_plugin_session.const import SupportedPlatform
+from nonebot_plugin_uninfo import (
+    Scene,
+    SceneType,
+    Session,
+    SupportAdapter,
+    SupportScope,
+    User,
+)
 
 from ..handler import register_receipt_extractor, register_withdraw_function
 from ..receipt import Receipt, add_receipt
+from ..utils import get_user_id
 
 with suppress(ImportError):
     from nonebot.adapters.feishu import Bot, MessageEvent
@@ -48,26 +55,19 @@ with suppress(ImportError):
         resp = await get_chat_info(bot, chat_id)
         chat_mode = resp["data"]["chat_mode"]
 
-        level = SessionLevel.LEVEL0
-        id1 = None
-        id2 = None
         if chat_mode == "p2p":
-            level = SessionLevel.LEVEL1
-            id1 = resp["data"]["owner_id"]
+            scene_type = SceneType.PRIVATE
         elif chat_mode == "group":
-            level = SessionLevel.LEVEL2
-            id2 = chat_id
+            scene_type = SceneType.GROUP
 
         session = Session(
-            bot_id=bot.self_id,
-            bot_type=bot.type,
-            platform=SupportedPlatform.feishu,
-            level=level,
-            id1=id1,
-            id2=id2,
-            id3=None,
+            self_id=bot.self_id,
+            adapter=SupportAdapter.feishu,
+            scope=SupportScope.feishu,
+            scene=Scene(id=chat_id, type=scene_type),
+            user=User(id=bot.self_id),
         )
-        user_id = session.get_id(SessionIdType.GROUP)
+        user_id = get_user_id(session)
         receipt = FeishuReceipt(message_id=result_data["message_id"])
         add_receipt(user_id, receipt)
 

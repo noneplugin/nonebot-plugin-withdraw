@@ -2,8 +2,14 @@ from contextlib import suppress
 from typing import Any, Optional, Union
 
 from nonebot.adapters import Bot as BaseBot
-from nonebot_plugin_session import EventSession, Session, SessionIdType, SessionLevel
-from nonebot_plugin_session.const import SupportedPlatform
+from nonebot_plugin_uninfo import (
+    Scene,
+    SceneType,
+    Session,
+    SupportAdapter,
+    SupportScope,
+    User,
+)
 
 from ..handler import (
     register_receipt_extractor,
@@ -11,6 +17,7 @@ from ..handler import (
     withdraw_notice,
 )
 from ..receipt import Receipt, add_receipt, remove_receipt
+from ..utils import UserId, get_user_id
 
 with suppress(ImportError):
     from nonebot.adapters.onebot.v11 import (
@@ -38,39 +45,38 @@ with suppress(ImportError):
             return
         if e or not result:
             return
-
-        if api in ["send_msg", "send_forward_msg"]:
-            msg_type = data["message_type"]
-            if msg_type == "group":
-                level = level = SessionLevel.LEVEL2
-            else:
-                level = SessionLevel.LEVEL1
-        elif api in ["send_private_msg", "send_private_forward_msg"]:
-            level = SessionLevel.LEVEL1
-        elif api in ["send_group_msg", "send_group_forward_msg"]:
-            level = SessionLevel.LEVEL2
-        else:
+        if api not in ["send_msg", "send_private_msg", "send_group_msg"]:
             return
 
+        if api == "send_group_msg" or (
+            api == "send_msg"
+            and (
+                data.get("message_type") == "group"
+                or (data.get("message_type") is None and data.get("group_id"))
+            )
+        ):
+            scene_id = str(data["group_id"])
+            scene_type = SceneType.GROUP
+        else:
+            scene_id = str(data["user_id"])
+            scene_type = SceneType.PRIVATE
+
         session = Session(
-            bot_id=bot.self_id,
-            bot_type=bot.type,
-            platform=SupportedPlatform.qq,
-            level=level,
-            id1=str(data.get("user_id", "")) or None,
-            id2=str(data.get("group_id", "")) or None,
-            id3=None,
+            self_id=bot.self_id,
+            adapter=SupportAdapter.onebot11,
+            scope=SupportScope.qq_client,
+            scene=Scene(id=scene_id, type=scene_type),
+            user=User(id=bot.self_id),
         )
-        user_id = session.get_id(SessionIdType.GROUP)
+        user_id = get_user_id(session)
         receipt = OnebotV11Receipt(message_id=result["message_id"])
         add_receipt(user_id, receipt)
 
     @withdraw_notice.handle()
     def _(
         event: Union[GroupRecallNoticeEvent, FriendRecallNoticeEvent],
-        session: EventSession,
+        user_id: UserId,
     ):
-        user_id = session.get_id(SessionIdType.GROUP)
         receipt = OnebotV11Receipt(message_id=event.message_id)
         remove_receipt(user_id, receipt)
 

@@ -2,8 +2,14 @@ from contextlib import suppress
 from typing import Any, Optional, Union
 
 from nonebot.adapters import Bot as BaseBot
-from nonebot_plugin_session import EventSession, Session, SessionIdType, SessionLevel
-from nonebot_plugin_session.const import SupportedPlatform
+from nonebot_plugin_uninfo import (
+    Scene,
+    SceneType,
+    Session,
+    SupportAdapter,
+    SupportScope,
+    User,
+)
 
 from ..handler import (
     register_receipt_extractor,
@@ -11,6 +17,7 @@ from ..handler import (
     withdraw_notice,
 )
 from ..receipt import Receipt, add_receipt, remove_receipt
+from ..utils import UserId, get_user_id
 
 with suppress(ImportError):
     from nonebot.adapters.kaiheila import Bot
@@ -47,36 +54,30 @@ with suppress(ImportError):
         ):
             return
 
+        scene_id = data["target_id"]
         if api == "message_create":
-            level = SessionLevel.LEVEL3
-            channel_id = data["target_id"]
-            user_id = data.get("temp_target_id")
+            scene_type = SceneType.CHANNEL_TEXT
         elif api == "directMessage_create":
-            level = SessionLevel.LEVEL1
-            channel_id = None
-            user_id = data["target_id"]
+            scene_type = SceneType.PRIVATE
         else:
             return
 
         session = Session(
-            bot_id=bot.self_id,
-            bot_type=bot.type,
-            platform=SupportedPlatform.kaiheila,
-            level=level,
-            id1=user_id,
-            id2=None,
-            id3=channel_id,
+            self_id=bot.self_id,
+            adapter=SupportAdapter.kook,
+            scope=SupportScope.kook,
+            scene=Scene(id=scene_id, type=scene_type),
+            user=User(id=bot.self_id),
         )
-        user_id = session.get_id(SessionIdType.GROUP)
+        user_id = get_user_id(session)
         receipt = KaiheilaReceipt(msg_id=result.msg_id)
         add_receipt(user_id, receipt)
 
     @withdraw_notice.handle()
     def _(
         event: Union[ChannelDeleteMessageEvent, PrivateDeleteMessageEvent],
-        session: EventSession,
+        user_id: UserId,
     ):
-        user_id = session.get_id(SessionIdType.GROUP)
         receipt = KaiheilaReceipt(msg_id=event.msg_id)
         remove_receipt(user_id, receipt)
 

@@ -30,7 +30,6 @@
 - [x] Kaiheila
 - [x] Telegram
 - [x] Feishu
-- [x] RedProtocol
 - [x] Discord
 - [x] QQ
 - [x] Satori

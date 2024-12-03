@@ -12,15 +12,7 @@ repository = "https://github.com/noneplugin/nonebot-plugin-withdraw"
 python = "^3.9"
 nonebot2 = "^2.3.0"
 nonebot-plugin-alconna = ">=0.51.4"
-nonebot-plugin-session = "^0.3.0"
-
-[tool.poetry.group.dev.dependencies]
-
-[tool.poetry.group.test.dependencies]
-pytest-cov = "^5.0.0"
-pytest-asyncio = "^0.23.0"
-nonebug = "^0.3.0"
-nonebot2 = { version = "^2.3.0", extras = ["httpx", "fastapi"] }
+nonebot-plugin-uninfo = ">=0.4.0,<1.0.0"
 
 [tool.poetry.group.adapters]
 optional = true
@@ -39,7 +31,6 @@ nonebot-adapter-dodo = "^0.2.1"
 [tool.pyright]
 pythonVersion = "3.9"
 pythonPlatform = "All"
-defineConstant = { PYDANTIC_V2 = true }
 typeCheckingMode = "basic"
 
 [tool.ruff]

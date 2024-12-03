@@ -2,15 +2,24 @@ from contextlib import suppress
 from typing import Any, Optional, cast
 
 from nonebot.adapters import Bot as BaseBot
-from nonebot_plugin_session import EventSession, Session, SessionIdType, SessionLevel
+from nonebot_plugin_uninfo import (
+    Scene,
+    SceneType,
+    Session,
+    SupportAdapter,
+    SupportScope,
+    User,
+)
 
 from ..handler import register_withdraw_function, withdraw_notice
 from ..receipt import Receipt, add_receipt, remove_receipt
+from ..utils import UserId, get_user_id
 
 with suppress(ImportError):
     from nonebot.adapters.satori import Bot
     from nonebot.adapters.satori.event import MessageDeletedEvent
     from nonebot.adapters.satori.models import MessageObject
+    from nonebot_plugin_uninfo.adapters.satori.main import TYPE_MAPPING
 
     class SatoriReceipt(Receipt):
         channel_id: str
@@ -33,39 +42,58 @@ with suppress(ImportError):
             return
         if api not in ["message_create"]:
             return
-        if not all(isinstance(msg, MessageObject) for msg in result):
-            return
-        msg = cast(MessageObject, result[0])
-        if not msg.channel:
-            return
+        for res in result:
+            if not isinstance(res, MessageObject):
+                return
+        result_messages = cast(list[MessageObject], result)
+        msg = result_messages[0]
 
-        level = SessionLevel.LEVEL0
-        if msg.guild:
-            level = SessionLevel.LEVEL3
-        elif msg.member:
-            level = SessionLevel.LEVEL2
-        elif msg.user:
-            level = SessionLevel.LEVEL1
-        id1 = data["channel_id"] if level == SessionLevel.LEVEL1 else None
-        id2 = msg.channel.id
-        id3 = msg.guild.id if msg.guild else None
+        parent = None
+
+        if msg.guild and msg.channel:
+            scene_type = TYPE_MAPPING[msg.channel.type]
+            scene_id = msg.channel.id
+            parent = Scene(id=msg.guild.id, type=SceneType.GUILD)
+            if (
+                "guild.plain" in bot._self_info.features
+                or msg.guild.id == msg.channel.id
+            ):
+                scene_type = SceneType.GROUP
+                parent.type = SceneType.GROUP
+
+        elif msg.guild:
+            scene_type = (
+                SceneType.GROUP
+                if "guild.plain" in bot._self_info.features
+                else SceneType.GUILD
+            )
+            scene_id = msg.guild.id
+
+        elif msg.channel:
+            scene_type = (
+                SceneType.GROUP
+                if "guild.plain" in bot._self_info.features
+                else SceneType.GUILD
+            )
+            scene_id = msg.channel.id
+
+        else:
+            return
 
         session = Session(
-            bot_id=bot.self_id,
-            bot_type=bot.type,
-            platform=bot.platform,
-            level=level,
-            id1=id1,
-            id2=id2,
-            id3=id3,
+            self_id=bot.self_id,
+            adapter=SupportAdapter.satori,
+            scope=SupportScope.ensure_satori(bot.platform),
+            scene=Scene(id=scene_id, type=scene_type, parent=parent),
+            user=User(id=bot.self_id),
         )
-        user_id = session.get_id(SessionIdType.GROUP)
+        user_id = get_user_id(session)
+        assert msg.channel
         receipt = SatoriReceipt(channel_id=msg.channel.id, message_id=msg.id)
         add_receipt(user_id, receipt)
 
     @withdraw_notice.handle()
-    def _(event: MessageDeletedEvent, session: EventSession):
-        user_id = session.get_id(SessionIdType.GROUP)
+    def _(event: MessageDeletedEvent, user_id: UserId):
         receipt = SatoriReceipt(
             channel_id=event.channel.id, message_id=event.message.id
         )

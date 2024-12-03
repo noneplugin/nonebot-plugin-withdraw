@@ -2,8 +2,14 @@ from contextlib import suppress
 from typing import Any, Optional, Union
 
 from nonebot.adapters import Bot as BaseBot
-from nonebot_plugin_session import EventSession, Session, SessionIdType, SessionLevel
-from nonebot_plugin_session.const import SupportedPlatform
+from nonebot_plugin_uninfo import (
+    Scene,
+    SceneType,
+    Session,
+    SupportAdapter,
+    SupportScope,
+    User,
+)
 
 from ..handler import (
     register_receipt_extractor,
@@ -11,6 +17,7 @@ from ..handler import (
     withdraw_notice,
 )
 from ..receipt import Receipt, add_receipt, remove_receipt
+from ..utils import UserId, get_user_id
 
 with suppress(ImportError):
     from nonebot.adapters.discord import (
@@ -56,40 +63,36 @@ with suppress(ImportError):
 
         channel = await get_channel(bot, result.channel_id)
 
-        level = SessionLevel.LEVEL0
-        id1 = None
-        id2 = str(result.channel_id)
-        id3 = None
+        parent = None
         if channel.type in [ChannelType.DM]:
-            level = SessionLevel.LEVEL1
-            id1 = (
+            scene_type = SceneType.PRIVATE
+            scene_id = (
                 str(channel.recipients[0].id)
                 if channel.recipients != UNSET and channel.recipients
-                else None
+                else ""
             )
         else:
-            level = SessionLevel.LEVEL3
-            id3 = str(channel.guild_id) if channel.guild_id != UNSET else None
+            scene_type = SceneType.CHANNEL_TEXT
+            scene_id = str(result.channel_id)
+            if channel.guild_id != UNSET:
+                parent = Scene(id=str(channel.guild_id), type=SceneType.GUILD)
 
         session = Session(
-            bot_id=bot.self_id,
-            bot_type=bot.type,
-            platform=SupportedPlatform.discord,
-            level=level,
-            id1=id1,
-            id2=id2,
-            id3=id3,
+            self_id=bot.self_id,
+            adapter=SupportAdapter.discord,
+            scope=SupportScope.discord,
+            scene=Scene(id=scene_id, type=scene_type, parent=parent),
+            user=User(id=bot.self_id),
         )
-        user_id = session.get_id(SessionIdType.GROUP)
+        user_id = get_user_id(session)
         receipt = DiscordReceipt(channel_id=result.channel_id, message_id=result.id)
         add_receipt(user_id, receipt)
 
     @withdraw_notice.handle()
     def _(
         event: Union[MessageDeleteBulkEvent, MessageDeleteEvent],
-        session: EventSession,
+        user_id: UserId,
     ):
-        user_id = session.get_id(SessionIdType.GROUP)
         if isinstance(event, MessageDeleteEvent):
             receipt = DiscordReceipt(channel_id=event.channel_id, message_id=event.id)
             remove_receipt(user_id, receipt)

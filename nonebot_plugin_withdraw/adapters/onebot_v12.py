@@ -2,7 +2,14 @@ from contextlib import suppress
 from typing import Any, Optional, Union
 
 from nonebot.adapters import Bot as BaseBot
-from nonebot_plugin_session import EventSession, Session, SessionIdType, SessionLevel
+from nonebot_plugin_uninfo import (
+    Scene,
+    SceneType,
+    Session,
+    SupportAdapter,
+    SupportScope,
+    User,
+)
 
 from ..handler import (
     register_receipt_extractor,
@@ -10,6 +17,7 @@ from ..handler import (
     withdraw_notice,
 )
 from ..receipt import Receipt, add_receipt, remove_receipt
+from ..utils import UserId, get_user_id
 
 with suppress(ImportError):
     from nonebot.adapters.onebot.v12 import (
@@ -41,34 +49,41 @@ with suppress(ImportError):
         if api not in ["send_message"]:
             return
 
+        parent = None
         detail_type = data["detail_type"]
-        level = SessionLevel.LEVEL0
         if detail_type == "channel":
-            level = SessionLevel.LEVEL3
+            scene_type = SceneType.CHANNEL_TEXT
+            scene_id = data["channel_id"]
+            parent = (
+                Scene(id=data["guild_id"], type=SceneType.GUILD)
+                if data.get("guild_id")
+                else None
+            )
         elif detail_type == "group":
-            level = SessionLevel.LEVEL2
+            scene_type = SceneType.GROUP
+            scene_id = data["group_id"]
         elif detail_type == "private":
-            level = SessionLevel.LEVEL1
+            scene_type = SceneType.PRIVATE
+            scene_id = data["user_id"]
+        else:
+            return
 
         session = Session(
-            bot_id=bot.self_id,
-            bot_type=bot.type,
-            platform=bot.platform,
-            level=level,
-            id1=data.get("user_id"),
-            id2=data.get("group_id") or data.get("channel_id"),
-            id3=data.get("guild_id"),
+            self_id=bot.self_id,
+            adapter=SupportAdapter.onebot12,
+            scope=SupportScope.ensure_ob12(bot.platform),
+            scene=Scene(id=scene_id, type=scene_type, parent=parent),
+            user=User(id=bot.self_id),
         )
-        user_id = session.get_id(SessionIdType.GROUP)
+        user_id = get_user_id(session)
         receipt = OnebotV12Receipt(message_id=result["message_id"])
         add_receipt(user_id, receipt)
 
     @withdraw_notice.handle()
     def _(
         event: Union[GroupMessageDeleteEvent, PrivateMessageDeleteEvent],
-        session: EventSession,
+        user_id: UserId,
     ):
-        user_id = session.get_id(SessionIdType.GROUP)
         receipt = OnebotV12Receipt(message_id=event.message_id)
         remove_receipt(user_id, receipt)
 
